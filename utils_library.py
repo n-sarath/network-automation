@@ -1,7 +1,6 @@
 import threading
 import re
 from dataclasses import dataclass
-from string import Template
 
 import mysql.connector
 import xmltodict
@@ -45,7 +44,7 @@ class Device:
     def get_config(self):
         return self.nc_con.get_config('running')
 
-    def verify_bgp(self):
+    def verify_bgp_mib(self):
         with open('Templates/bgp_oper', 'r') as file:
             netconf_filter = file.read()
 
@@ -55,12 +54,10 @@ class Device:
         # Parse the XML data using xmltodict- this will create an OrderedDict object
         nc_reply_dict = xmltodict.parse(nc_rpc_reply)
 
-        session_state = parse_nested_dict(nc_reply_dict, 'rpc-reply', 'data', 'network-instances',
-                                          'network-instance', 'protocols', 'protocol', 'bgp', 'neighbors',
-                                          'neighbor', 'state', 'session-state')
-
-        # print(session_state)
-        return True if session_state == 'ESTABLISHED' else False
+        session_state = parse_nested_dict(nc_reply_dict, 'rpc-reply', 'data', 'BGP4-MIB',
+                                          'bgpPeerTable', 'bgpPeerEntry', 'bgpPeerState')
+        print(session_state)
+        return True if session_state == 'established' else False
 
     def edit_config_interface(self, interface='', ip_address='', mask=''):
         mg_1 = re.search(r'[A-Za-z]([0-9])', interface)
@@ -82,15 +79,14 @@ class Device:
         # process this for OK
 
 
-
 class Database:
     """
         Handle Database specific like connection, query
     """
-    def __init__(self, host):
-        self.host = host
-        self.user = 'root'
-        self.password = '!ongestPassword'
+    def __init__(self, ip, username, password):
+        self.host = ip
+        self.user = username
+        self.password = password
         self.database = 'ipam_database'
         self.conn = mysql.connector.connect(host=self.host, user=self.user, passwd=self.password,
                                            database=self.database)
@@ -160,7 +156,7 @@ def verify_baseline_health(device):
     """
         To verify initial Baseline health of topology
     """
-    return device.verify_bgp()
+    return device.verify_bgp_mib()
 
 
 def parse_nested_dict(data, *args):

@@ -18,7 +18,6 @@ class EventTrigger(threading.Thread):
         self.thread_safe_dict = ThreadSafeDict()
 
         # Subscribe for NETCONF notifications for Events
-        # *** --> *** check this for success and accordingly fail with errors
         self.device.nc_con.create_subscription(stream_name=self.stream)
 
     def run(self):
@@ -42,23 +41,19 @@ def run_callback_in_thread(device, device_DC, nc_rpc_reply, thread_safe_dict, se
 
 # Define the callback function to be run in a separate thread
 def callback_function(device, device_DC, nc_rpc_reply, thread_safe_dict, semaphore):
-    with semaphore:
-        # print(f"Callback function invoked with data: {nc_rpc_reply}")
-
+    with (semaphore):
         nc_rpc_reply_xml = nc_rpc_reply.notification_xml
-        # print(nc_rpc_reply_xml)
 
         # Parse the XML data using xmltodict- this will create an OrderedDict object
         nc_reply_dict = xmltodict.parse(nc_rpc_reply_xml)
-        # print(nc_reply_dict)
 
         try:
 
             event_type = nc_reply_dict['notification']['clogMessageGenerated']['object-1']['clogHistFacility']
             event_info = nc_reply_dict['notification']['clogMessageGenerated']['object-4']['clogHistMsgText']
             message = (
-                f"{threading.current_thread().name}: "
-                f"*** NETCONF_NOTIFICATION : {event_type:^25} -- {event_info:<20}"
+                f"{threading.current_thread().name} / #{threading.active_count()} : "
+                f"    NETCONF_NOTIFICATION : {event_type:^18} -- {event_info:<20}"
             )
             print(message)
 
@@ -74,16 +69,16 @@ def callback_function(device, device_DC, nc_rpc_reply, thread_safe_dict, semapho
                 match event_info:
                     case _ if re.match(r'neighbor [0-9.]+ Down', event_info):
                         message = (
-                            f"{threading.current_thread().name}: "
-                            f"### LOG : <processing> netconf_notification : BGP neighbor down"
+                            f"{threading.current_thread().name} / #{threading.active_count()} : "
+                            f"    LOG : <processing> netconf_notification : BGP neighbor down"
                         )
                         print(message)
 
                         # check if any already Duplicate IP notification from NETCONF
                         if thread_safe_dict.contains_item('DUPADDR'):
                             message = (
-                                f"{threading.current_thread().name}: "
-                                f"### LOG : --- --- --- --- AUTO_HEALING in-action... --- --- --- ---"
+                                f"{threading.current_thread().name} / #{threading.active_count()} : "
+                                f"    LOG : --- --- --- --- AUTO_HEALING in-progress... --- --- --- ---"
                             )
                             print(message)
 
@@ -100,20 +95,38 @@ def callback_function(device, device_DC, nc_rpc_reply, thread_safe_dict, semapho
                                                          ip_address=ip_format,
                                                          mask=mask_format)
 
+                            # Verify Auto-healing actually fixed it..
+                            loop_ctrl = 0
+                            while loop_ctrl < 15:
+                                if device.verify_bgp_mib():
+                                    message = (
+                                        f"{threading.current_thread().name} / #{threading.active_count()} : "
+                                        f"    LOG : --- --- --- --- AUTO_HEALING attempt success --- --- --- ---"
+                                    )
+                                    print(message)
+                                    break
+
+                                loop_ctrl += 1
+                                time.sleep(1)
+
+                            if loop_ctrl == 15:
+                                message = (
+                                    f"{threading.current_thread().name} / #{threading.active_count()} : "
+                                    f"    LOG : --- --- --- --- AUTO_HEALING attempt failed --- --- --- ---"
+                                )
+                                print(message)
+
                     # here, can expand Auto Healing to cover for more BGP cases
                     case 'add more':
                         print('more')
 
             # here, can expand Auto Healing to cover for more protocols etc..
-            # importantly, if we handle directly event 'DUPADDR' we can reduce down-time a log because BGP takes
-            # approx 180 seconds to detect fault without special configs like BFD enabled
+            # importantly, if we handle directly event 'DUPADDR' we can reduce down-time a lot because BGP takes
+            # approx 180 seconds by default to detect fault without special configs like BFD enabled
             if event_type == 'DUPADDR':
                 match event_info:
                     case 'xxx xx':
                         print('do')
-
-            # print(nc_reply_dict['notification'])
-            # thread_safe_dict.print_items()
 
         except KeyError:
             # Multi level Nested dictionary from XML and safe to skip not-interested Events
@@ -124,7 +137,7 @@ def callback_function(device, device_DC, nc_rpc_reply, thread_safe_dict, semapho
 def main():
 
     # Connect to Database for Single Source of Truth
-    DB = Database('localhost')
+    DB = Database(ip='localhost', username=sys.argv[1], password=sys.argv[2])
 
     R1_DC = DB.fetch_by_device('R1')
     # R2_DC = DB.fetch_by_device('R2')
@@ -138,8 +151,7 @@ def main():
         print("Topology devices not per expected Baselines..")
         sys.exit(0)
 
-    # For Auto healing, create an event trigger for interested NETCONF streams like "NETCONF"
-    # and "snmpevents" etc..
+    # For Auto healing, create an event trigger for interested NETCONF streams like "NETCONF" stream..
     R1_event_trigger_snmpevents = EventTrigger(R1, R1_DC, 'snmpevents', 10)
     R1_event_trigger_snmpevents.start()
 
