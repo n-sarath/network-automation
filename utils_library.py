@@ -48,15 +48,13 @@ class Device:
         with open('Templates/bgp_oper', 'r') as file:
             netconf_filter = file.read()
 
-        # Make the `<get>` RPC request Apply the filter
+        # Make the `<get>` RPC request applying the filter and parse using xmltodict
         nc_rpc_reply = self.nc_con.get(filter=netconf_filter).xml
-
-        # Parse the XML data using xmltodict- this will create an OrderedDict object
         nc_reply_dict = xmltodict.parse(nc_rpc_reply)
 
         session_state = parse_nested_dict(nc_reply_dict, 'rpc-reply', 'data', 'BGP4-MIB',
                                           'bgpPeerTable', 'bgpPeerEntry', 'bgpPeerState')
-        print(session_state)
+
         return True if session_state == 'established' else False
 
     def edit_config_interface(self, interface='', ip_address='', mask=''):

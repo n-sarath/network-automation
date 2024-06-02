@@ -1,5 +1,3 @@
-import threading
-import re
 import time
 import sys
 
@@ -7,10 +5,10 @@ from utils_library import *
 
 
 class EventTrigger(threading.Thread):
-    def __init__(self, device, device_DC, stream, max_threads):
+    def __init__(self, device, device_dc, stream, max_threads):
         super().__init__()
         self.device = device
-        self.device_DC = device_DC
+        self.device_dc = device_dc
         self.stop_event = threading.Event()
         self.semaphore = threading.Semaphore(max_threads)
         self.stream = stream
@@ -26,21 +24,21 @@ class EventTrigger(threading.Thread):
             nc_rpc_reply = self.device.nc_con.take_notification()
 
             # Trigger the callback in a separate thread with semaphore
-            run_callback_in_thread(self.device, self.device_DC, nc_rpc_reply, self.thread_safe_dict, self.semaphore)
+            run_callback_in_thread(self.device, self.device_dc, nc_rpc_reply, self.thread_safe_dict, self.semaphore)
 
     def stop(self):
         self.stop_event.set()
 
 
 # Function to run the callback in a separate thread
-def run_callback_in_thread(device, device_DC, nc_rpc_reply, thread_safe_dict, semaphore):
-    callback_thread = threading.Thread(target=callback_function, args=(device, device_DC, nc_rpc_reply,
+def run_callback_in_thread(device, device_dc, nc_rpc_reply, thread_safe_dict, semaphore):
+    callback_thread = threading.Thread(target=callback_function, args=(device, device_dc, nc_rpc_reply,
                                                                        thread_safe_dict, semaphore))
     callback_thread.start()
 
 
 # Define the callback function to be run in a separate thread
-def callback_function(device, device_DC, nc_rpc_reply, thread_safe_dict, semaphore):
+def callback_function(device, device_dc, nc_rpc_reply, thread_safe_dict, semaphore):
     with (semaphore):
         nc_rpc_reply_xml = nc_rpc_reply.notification_xml
 
@@ -88,8 +86,8 @@ def callback_function(device, device_DC, nc_rpc_reply, thread_safe_dict, semapho
 
                             if mg_1.groups()[0] == mg_2.groups()[0]:
 
-                                ip_format = eval(f'device_DC.{mg_2.groups()[1]}_ip')
-                                mask_format = eval(f'device_DC.{mg_2.groups()[1]}_mask')
+                                ip_format = eval(f'device_dc.{mg_2.groups()[1]}_ip')
+                                mask_format = eval(f'device_dc.{mg_2.groups()[1]}_mask')
 
                                 device.edit_config_interface(interface=mg_2.groups()[1],
                                                          ip_address=ip_format,
@@ -97,7 +95,7 @@ def callback_function(device, device_DC, nc_rpc_reply, thread_safe_dict, semapho
 
                             # Verify Auto-healing actually fixed it..
                             loop_ctrl = 0
-                            while loop_ctrl < 15:
+                            while loop_ctrl < 20:
                                 if device.verify_bgp_mib():
                                     message = (
                                         f"{threading.current_thread().name} / #{threading.active_count()} : "
@@ -109,7 +107,7 @@ def callback_function(device, device_DC, nc_rpc_reply, thread_safe_dict, semapho
                                 loop_ctrl += 1
                                 time.sleep(1)
 
-                            if loop_ctrl == 15:
+                            if loop_ctrl == 20:
                                 message = (
                                     f"{threading.current_thread().name} / #{threading.active_count()} : "
                                     f"    LOG : --- --- --- --- AUTO_HEALING attempt failed --- --- --- ---"
@@ -122,7 +120,7 @@ def callback_function(device, device_DC, nc_rpc_reply, thread_safe_dict, semapho
 
             # here, can expand Auto Healing to cover for more protocols etc..
             # importantly, if we handle directly event 'DUPADDR' we can reduce down-time a lot because BGP takes
-            # approx 180 seconds by default to detect fault without special configs like BFD enabled
+            # approx 180 seconds by default to detect fault without special configs like BFD enabled so blackhole trafic
             if event_type == 'DUPADDR':
                 match event_info:
                     case 'xxx xx':

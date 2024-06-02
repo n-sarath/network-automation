@@ -1,0 +1,43 @@
+{# Loop through interfaces to pick Loopback0 ip-address to use for Router-ID #}
+{% set var = [''] %}
+{% for int in interfaces %}
+  {% if int.name == "Loopback0" %}
+    {% set _ = var.append(int.ip) %}
+  {% endif %}
+{% endfor %}
+!
+hostname {{ device }}
+!
+{% for int in interfaces %}
+interface {{ int.name }}
+  ip address {{ int.ip }} {{ int.mask }}
+  {% if int.state == "enabled" %}
+  no shutdown
+  {% else %}
+  shutdown
+  {% endif %}
+!
+{% endfor %}
+router bgp {{ bgp_asn }}
+  {% for neighbor in bgp_neighbors %}
+  bgp router-id {{ var[-1] }}
+  neighbor {{ neighbor.ip }} remote-as {{ neighbor.remote_as }}
+  {% endfor %}
+!
+{% if (netconf_yang_traps is defined) and netconf_yang_traps %}
+netconf-yang
+netconf-yang cisco-ia snmp-community-string public
+{% for nc in netconf_yang_traps %}
+netconf-yang cisco-ia snmp-trap-control trap-list  {{ nc }}
+{% endfor %}
+!
+{% endif %}
+{% for log in logging_snmp_traps %}
+logging snmp-trap {{ log }}
+{% endfor %}
+!
+{% for snmp_enable in snmp_enable_traps %}
+snmp-server enable traps  {{ snmp_enable }}
+{% endfor %}
+
+

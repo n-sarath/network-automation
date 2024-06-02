@@ -1,0 +1,25 @@
+!
+hostname R2
+!
+interface GigabitEthernet1/0
+  ip address 19.1.0.2 255.255.255.0
+  no shutdown
+!
+interface FastEthernet0/1
+  ip address 21.1.0.1 255.255.255.0
+  no shutdown
+!
+interface Loopback0
+  ip address 2.2.2.2 255.255.255.255
+  no shutdown
+!
+interface Loopback22
+  ip address 22.22.22.22 255.255.255.0
+  no shutdown
+!
+router bgp 5002
+  bgp router-id 2.2.2.2
+  neighbor 19.1.0.1 remote-as 5001
+!
+!
+
