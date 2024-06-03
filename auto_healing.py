@@ -149,7 +149,7 @@ def main():
         print("Topology devices not per expected Baselines..")
         sys.exit(0)
 
-    # For Auto healing, create an event trigger for interested NETCONF streams like "NETCONF" stream..
+    # For Auto healing, create an event trigger for interested NETCONF streams example: "NETCONF" stream..
     R1_event_trigger_snmpevents = EventTrigger(R1, R1_DC, 'snmpevents', 10)
     R1_event_trigger_snmpevents.start()
 

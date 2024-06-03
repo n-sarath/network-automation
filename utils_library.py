@@ -23,10 +23,12 @@ class DeviceData:
     GigabitEthernet4_ip: str
     GigabitEthernet4_mask: str
 
-
 class Device:
     """
         Handle Device specific like connection, config, operational
+
+        Note: when need to Scale up for multiple scenarios like BGP, OSPF, MPLS it can be easily
+        done through Inheritance
     """
     def __init__(self, ip, username, password):
         self.ip = ip
@@ -45,7 +47,7 @@ class Device:
         return self.nc_con.get_config('running')
 
     def verify_bgp_mib(self):
-        with open('Templates/bgp_oper', 'r') as file:
+        with open('Templates/bgp_oper.xml', 'r') as file:
             netconf_filter = file.read()
 
         # Make the `<get>` RPC request applying the filter and parse using xmltodict
@@ -61,7 +63,7 @@ class Device:
         mg_1 = re.search(r'[A-Za-z]([0-9])', interface)
 
         # Open template file to read yang model
-        with open('Templates/interface_config', 'r') as file:
+        with open('Templates/interface_config.xml', 'r') as file:
             config_snippet = file.read()
 
         # Define the variables which gets variable substitution in the templates file
@@ -71,6 +73,30 @@ class Device:
 
         # String format approach with dictionary unpacking
         config_snippet = config_snippet.format(**variables)
+
+        # Make the `<get>` RPC edit config the filter
+        res = self.nc_con.edit_config(config=config_snippet, target="running")
+        # process this for OK
+
+    def edit_config_ospf(self, process_id, router_id, network_ip, network_mask, area_id, action):
+
+        # Open template file to read yang model
+        with open('Templates/ospf_config.xml', 'r') as file:
+            config_snippet = file.read()
+
+        if action == 'disable':
+            delete = ' operation="delete"'
+        else:
+            delete = ''
+
+        print(f"{delete=}")
+        # Define the variables which gets variable substitution in the templates file
+        variables = {'process_id': process_id, 'router_id': router_id, 'network_ip': network_ip,
+                     'network_mask': network_mask, 'area_id': area_id, 'action': delete}
+
+        # String format approach with dictionary unpacking
+        config_snippet = config_snippet.format(**variables)
+        print(config_snippet)
 
         # Make the `<get>` RPC edit config the filter
         res = self.nc_con.edit_config(config=config_snippet, target="running")
