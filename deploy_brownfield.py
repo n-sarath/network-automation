@@ -40,6 +40,7 @@ def main():
 
         case 'xxx_enable':
             # can be expanded easily adding more cases..
+            pass
 
     # Verify the Baseline health of topology
     # time.sleep(7)
