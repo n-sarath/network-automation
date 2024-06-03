@@ -5,6 +5,17 @@ from utils_library import *
 
 
 def main():
+    """
+        This is for Brownfield deployment which works as below,
+            1) Based on required action like "ospf_enable", "ospf_disable" etc it execute relevant config (or) un-config
+                by using NETCONF
+            2) This also ensures Baseline verifications before and after required action initiated to verify Topology is
+                in stable condition not impacted by Brownfield deployment changes
+
+            Note: This is expandable by adding more cases like "mpls_enable", "mpls_disable" etc
+
+    """
+
     # Connect to Database for Single Source of Truth
     DB = Database(ip='localhost', username=sys.argv[1], password=sys.argv[2])
 
@@ -20,7 +31,8 @@ def main():
         print("Topology devices not per expected Baselines..")
         sys.exit(0)
 
-    action = 'ospf_enable'
+    action = 'ospf_disable'
+
     match action:
         case 'ospf_enable':
             # Deploy OSPF on existing topology
@@ -45,7 +57,9 @@ def main():
     # Verify the Baseline health of topology
     # time.sleep(7)
     if not verify_baseline_health(R1):
-        print("FAILED: Topology devices not per expected Baselines after Brownfield deployment changes..")
+        print("LOG : FAILED: Topology devices not per expected Baselines after Brownfield deployment changes..")
+    else:
+        print("LOG : SUCCESS: Topology devices as per expected Baselines after Brownfield deployment changes..")
 
 
 if __name__ == "__main__":

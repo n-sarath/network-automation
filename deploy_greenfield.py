@@ -3,21 +3,27 @@ from jinja2 import Environment, FileSystemLoader
 
 
 def handle_yaml():
+    """
+        This is for Greenfield deployment which works as below,
+            1) Takes input from YAML file for each of Router Configurations
+            2) Generate individual Router config files as "hostname-config" at the folder DHCP_server_upload/ so that
+                these individual config files to be uploaded to DHCP (or) TFTP server based on Cisco (or) Juniper
+                workflow of ZTP/auto-install followed for Day-0 bring-up
+    """
+
     # Read YAML input file
     with open("GreenField/devices.yaml") as file:
         device_info = yaml.safe_load(file)
 
-    # Read your jinja template file
-    env = Environment(
-        loader=FileSystemLoader('Greenfield/'),
-        trim_blocks=True,
-        lstrip_blocks=True
-    )
+    # Read Jinja template file
+    env = Environment(loader=FileSystemLoader('Greenfield/'),
+                      trim_blocks=True,
+                      lstrip_blocks=True)
     template = env.get_template('template.j2')
 
-    # iterate over the devices described in your yaml file and use jinja to render your configuration
+    # iterate over the devices described in yaml file and use jinja to render the configuration
     for device in device_info["devices"]:
-        # write new CONFIG files for each of Routers
+        # write new CONFIG files for each of Routers at the location DHCP_server_upload/
         with open(f'GreenField/DHCP_server_upload/{device["name"]}-config', 'w') as file:
             file.write(template.render(device=device["name"], interfaces=device["interfaces"],
                                        logging_snmp_traps=device["logging_snmp_traps"],

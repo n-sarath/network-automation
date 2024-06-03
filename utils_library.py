@@ -47,6 +47,10 @@ class Device:
         return self.nc_con.get_config('running')
 
     def verify_bgp_mib(self):
+        """
+            This verifies BGP operational state using NETCONF
+        """
+
         with open('Templates/bgp_oper.xml', 'r') as file:
             netconf_filter = file.read()
 
@@ -60,6 +64,10 @@ class Device:
         return True if session_state == 'established' else False
 
     def edit_config_interface(self, interface='', ip_address='', mask=''):
+        """
+            This configures interface with given details using NETCONF
+        """
+
         mg_1 = re.search(r'[A-Za-z]([0-9])', interface)
 
         # Open template file to read yang model
@@ -79,6 +87,9 @@ class Device:
         # process this for OK
 
     def edit_config_ospf(self, process_id, router_id, network_ip, network_mask, area_id, action):
+        """
+            This configures OSPF with given details using NETCONF
+        """
 
         # Open template file to read yang model
         with open('Templates/ospf_config.xml', 'r') as file:
@@ -89,14 +100,12 @@ class Device:
         else:
             delete = ''
 
-        print(f"{delete=}")
         # Define the variables which gets variable substitution in the templates file
         variables = {'process_id': process_id, 'router_id': router_id, 'network_ip': network_ip,
                      'network_mask': network_mask, 'area_id': area_id, 'action': delete}
 
         # String format approach with dictionary unpacking
         config_snippet = config_snippet.format(**variables)
-        print(config_snippet)
 
         # Make the `<get>` RPC edit config the filter
         res = self.nc_con.edit_config(config=config_snippet, target="running")
@@ -116,12 +125,10 @@ class Database:
                                            database=self.database)
         self.cursr = self.conn.cursor()
 
-        # print(self.db_connection)
-
     def fetch_by_device(self, host_name):
-        # Establish a database connection
-        # DB = Database('localhost')
-        # print(DB)
+        """
+            This fetch the details from database using MySQL Query
+        """
 
         # Query the database
         query = ("SELECT * FROM ipam_db_table WHERE host_name = %s")
@@ -145,7 +152,7 @@ class Database:
 
 class ThreadSafeDict:
     """
-        As multi-threading implementation when multiple threads access data at same time, this helps
+        As multi-threading implementation during multiple threads access data at same time may conflict, this helps
         safe data access across threads by implementing Locking
     """
     def __init__(self):

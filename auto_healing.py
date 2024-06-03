@@ -5,6 +5,19 @@ from utils_library import *
 
 
 class EventTrigger(threading.Thread):
+    """
+        This handles every NETCONF notifications as individual Event so that sooner the Event happens, required
+        processing can be triggered using Event-Driven Programming (Call-back style)
+
+        Each of NETCONF notification event handled as separate Thread so that improves Reliability of not missing
+        any of NETCONF notifications
+
+        Semaphore used to limit maximum threads at a time so that during Network Chaos, possibility of lof of
+        NETCONF notification events triggered on which Central host CPU's not taking hit
+
+        Thread Safe dictionary object used for common access across NETCONF notification events which required to
+        analyze Past Events in-case of needing Multi-Criteria verifications
+    """
     def __init__(self, device, device_dc, stream, max_threads):
         super().__init__()
         self.device = device
@@ -19,8 +32,8 @@ class EventTrigger(threading.Thread):
         self.device.nc_con.create_subscription(stream_name=self.stream)
 
     def run(self):
+        # continuously in loop monitor for new NETCONF notifications till thread stopped
         while not self.stop_event.is_set():
-
             nc_rpc_reply = self.device.nc_con.take_notification()
 
             # Trigger the callback in a separate thread with semaphore
@@ -32,13 +45,25 @@ class EventTrigger(threading.Thread):
 
 # Function to run the callback in a separate thread
 def run_callback_in_thread(device, device_dc, nc_rpc_reply, thread_safe_dict, semaphore):
-    callback_thread = threading.Thread(target=callback_function, args=(device, device_dc, nc_rpc_reply,
+    """
+        this helps each of callback to process NETCONF notification event as separate Thread
+    """
+
+    callback_thread = threading.Thread(target=auto_healing, args=(device, device_dc, nc_rpc_reply,
                                                                        thread_safe_dict, semaphore))
     callback_thread.start()
 
 
 # Define the callback function to be run in a separate thread
-def callback_function(device, device_dc, nc_rpc_reply, thread_safe_dict, semaphore):
+def auto_healing(device, device_dc, nc_rpc_reply, thread_safe_dict, semaphore):
+    """
+        This is core function handling auto-healing as below,
+            1)  Detect the issue by processing current NETCONF notification event and as required also previous one
+            2)  Auto-heal by applying the fix if known defined scenarios
+
+        Note:  This is expandable to include more Scenarios under same category(bgp) or across new categories ospf etc
+    """
+
     with (semaphore):
         nc_rpc_reply_xml = nc_rpc_reply.notification_xml
 
@@ -46,7 +71,6 @@ def callback_function(device, device_dc, nc_rpc_reply, thread_safe_dict, semapho
         nc_reply_dict = xmltodict.parse(nc_rpc_reply_xml)
 
         try:
-
             event_type = nc_reply_dict['notification']['clogMessageGenerated']['object-1']['clogHistFacility']
             event_info = nc_reply_dict['notification']['clogMessageGenerated']['object-4']['clogHistMsgText']
             message = (
@@ -85,7 +109,6 @@ def callback_function(device, device_dc, nc_rpc_reply, thread_safe_dict, semapho
                                             thread_safe_dict.get_item('DUPADDR'))
 
                             if mg_1.groups()[0] == mg_2.groups()[0]:
-
                                 ip_format = eval(f'device_dc.{mg_2.groups()[1]}_ip')
                                 mask_format = eval(f'device_dc.{mg_2.groups()[1]}_mask')
 
@@ -133,6 +156,11 @@ def callback_function(device, device_dc, nc_rpc_reply, thread_safe_dict, semapho
 
 # Main function to set up the event trigger
 def main():
+    """
+        This is main function which do initial setup based on details of MySQL database for Single Source-of-Truth
+        This connects to all devices in Topology and also verifies the Baseline initial setup state before monitoring
+            for issues to auto-heal part of continuous loop so that it keeps track & take care continuous auto-healing..
+    """
 
     # Connect to Database for Single Source of Truth
     DB = Database(ip='localhost', username=sys.argv[1], password=sys.argv[2])
