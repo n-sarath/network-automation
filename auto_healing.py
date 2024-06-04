@@ -13,7 +13,7 @@ class EventTrigger(threading.Thread):
         any of NETCONF notifications
 
         Semaphore used to limit maximum threads at a time so that during Network Chaos, possibility of lof of
-        NETCONF notification events triggered on which Central host CPU's not taking hit
+        NETCONF notification events triggered on which Central host CPU's not taking hit. ( Default set to 10 )
 
         Thread Safe dictionary object used for common access across NETCONF notification events which required to
         analyze Past Events in-case of needing Multi-Criteria verifications

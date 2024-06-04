@@ -54,7 +54,7 @@ def main():
             pass
 
     # Verify the Baseline health of topology
-    # time.sleep(7)
+    time.sleep(7)
     if not verify_baseline_health(R1):
         print("LOG : FAILED: Topology devices not per expected Baselines after Brownfield deployment changes..")
     else:
