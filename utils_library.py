@@ -23,6 +23,7 @@ class DeviceData:
     GigabitEthernet4_ip: str
     GigabitEthernet4_mask: str
 
+
 class Device:
     """
         Handle Device specific like connection, config, operational
