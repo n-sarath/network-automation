@@ -18,7 +18,7 @@ class EventTrigger(threading.Thread):
         Thread Safe dictionary object used for common access across NETCONF notification events which required to
         analyze Past Events in-case of needing Multi-Criteria verifications
     """
-    def __init__(self, device, device_dc, stream, max_threads):
+    def __init__(self, device, device_dc, stream, max_threads=10):
         super().__init__()
         self.device = device
         self.device_dc = device_dc
