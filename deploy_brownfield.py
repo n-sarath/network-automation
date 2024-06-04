@@ -21,6 +21,9 @@ def main():
     R1_DC = DB.fetch_by_device('R1')
     # R2_DC = DB.fetch_by_device('R2')
 
+    # Gracefully close the Database connection
+    DB.close()
+
     # Connect to Routers of topology
     R1 = Device(ip=R1_DC.mgmt_ip, username=R1_DC.user_name, password=R1_DC.password)
     # R2 = Device(ip=R2_DC.mgmt_ip, username=R2_DC.user_name, password=R2_DC.password)
@@ -59,6 +62,10 @@ def main():
         print("LOG : FAILED: Topology devices not per expected Baselines after Brownfield deployment changes..")
     else:
         print("LOG : SUCCESS: Topology devices as per expected Baselines after Brownfield deployment changes..")
+
+    # Gracefully close the Router NETCONF connections
+    R1.close()
+    # R2.close()
 
 
 if __name__ == "__main__":

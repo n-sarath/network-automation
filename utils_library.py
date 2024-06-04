@@ -110,6 +110,12 @@ class Device:
         # Make the `<get>` RPC edit config the filter
         self.nc_con.edit_config(config=config_snippet, target="running")
 
+    def close(self):
+        """
+            Gracefully close the NETCONF connection
+        """
+        self.nc_con.close_session()
+
 
 class Database:
     """
@@ -136,10 +142,6 @@ class Database:
         # Fetch the result
         row = self.cursr.fetchone()
 
-        # Close the cursor and connection
-        self.cursr.close()
-        self.conn.close()
-
         if row is None:
             return None
 
@@ -147,6 +149,13 @@ class Database:
         record = DeviceData(*row)
 
         return record
+
+    def close(self):
+        """
+            Gracefully close the DATABASE connection
+        """
+        self.cursr.close()
+        self.conn.close()
 
 
 class ThreadSafeDict:
