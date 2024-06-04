@@ -84,8 +84,7 @@ class Device:
         config_snippet = config_snippet.format(**variables)
 
         # Make the `<get>` RPC edit config the filter
-        res = self.nc_con.edit_config(config=config_snippet, target="running")
-        # process this for OK
+        self.nc_con.edit_config(config=config_snippet, target="running")
 
     def edit_config_ospf(self, process_id, router_id, network_ip, network_mask, area_id, action):
         """
@@ -109,8 +108,7 @@ class Device:
         config_snippet = config_snippet.format(**variables)
 
         # Make the `<get>` RPC edit config the filter
-        res = self.nc_con.edit_config(config=config_snippet, target="running")
-        # process this for OK
+        self.nc_con.edit_config(config=config_snippet, target="running")
 
 
 class Database:
@@ -202,10 +200,9 @@ def parse_nested_dict(data, *args):
             return value if len(args) == 1 else parse_nested_dict(value, *args[1:])
 
 
-# Pretty print XML
 def print_xml(res):
     """
-        Handle printing easy readable XML representation of NETCONF response
+        Handle printing easy readable XML representation of NETCONF response. Pretty print XML
     """
     print(xml_.to_xml(res.data_ele, pretty_print=True))
 

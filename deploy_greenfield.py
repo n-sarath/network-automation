@@ -31,6 +31,8 @@ def handle_yaml():
                                        netconf_yang_traps=device["netconf_yang_traps"],
                                        bgp_asn=device["bgp_asn"], bgp_neighbors=device["bgp_neighbors"]))
 
+    print("LOG : SUCCESS: configuration files generated and please find at DHCP_server_upload/ directory..")
+
 
 if __name__ == "__main__":
     # generate the CONFIG files of Router of Topology

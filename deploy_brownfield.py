@@ -13,7 +13,6 @@ def main():
                 in stable condition not impacted by Brownfield deployment changes
 
             Note: This is expandable by adding more cases like "mpls_enable", "mpls_disable" etc
-
     """
 
     # Connect to Database for Single Source of Truth
@@ -31,7 +30,7 @@ def main():
         print("Topology devices not per expected Baselines..")
         sys.exit(0)
 
-    action = 'ospf_disable'
+    action = 'ospf_enable'
 
     match action:
         case 'ospf_enable':

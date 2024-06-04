@@ -50,7 +50,7 @@ def run_callback_in_thread(device, device_dc, nc_rpc_reply, thread_safe_dict, se
     """
 
     callback_thread = threading.Thread(target=auto_healing, args=(device, device_dc, nc_rpc_reply,
-                                                                       thread_safe_dict, semaphore))
+                                                                  thread_safe_dict, semaphore))
     callback_thread.start()
 
 
