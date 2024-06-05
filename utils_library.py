@@ -69,22 +69,30 @@ class Device:
             This configures interface with given details using NETCONF
         """
 
-        mg_1 = re.search(r'[A-Za-z]([0-9])', interface)
+        # Define the variables which gets variable substitution in the templates file
+        if mg_1 := re.search(r'[A-Za-z]([0-9])', interface):
+            variables = {'mg_1_groups_0': mg_1.groups()[0], 'ip_address': ip_address, 'mask_1': mask}
+            mg_1_groups_0 = mg_1.groups()[0]
+            mask_1 = mask
+        else:
+            print("ERROR : interface given not in expected format")
+            return False
 
         # Open template file to read yang model
         with open('Templates/interface_config.xml', 'r') as file:
             config_snippet = file.read()
 
-        # Define the variables which gets variable substitution in the templates file
-        variables = {'mg_1_groups_0': mg_1.groups()[0], 'ip_address': ip_address, 'mask_1': mask}
-        mg_1_groups_0 = mg_1.groups()[0]
-        mask_1 = mask
-
         # String format approach with dictionary unpacking
         config_snippet = config_snippet.format(**variables)
 
         # Make the `<get>` RPC edit config the filter
-        self.nc_con.edit_config(config=config_snippet, target="running")
+        nc_rpc_reply = self.nc_con.edit_config(config=config_snippet, target="running")
+        nc_reply_dict = xmltodict.parse(nc_rpc_reply.xml)
+
+        if 'ok' in nc_reply_dict['rpc-reply']:
+            return True
+        else:
+            return False
 
     def edit_config_ospf(self, process_id, router_id, network_ip, network_mask, area_id, action):
         """
@@ -108,7 +116,13 @@ class Device:
         config_snippet = config_snippet.format(**variables)
 
         # Make the `<get>` RPC edit config the filter
-        self.nc_con.edit_config(config=config_snippet, target="running")
+        nc_rpc_reply = self.nc_con.edit_config(config=config_snippet, target="running")
+        nc_reply_dict = xmltodict.parse(nc_rpc_reply.xml)
+
+        if 'ok' in nc_reply_dict['rpc-reply']:
+            return True
+        else:
+            return False
 
     def close(self):
         """

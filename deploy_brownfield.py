@@ -15,6 +15,9 @@ def main():
             Note: This is expandable by adding more cases like "mpls_enable", "mpls_disable" etc
     """
 
+    # flag to identify success/failure of Brownfield deployment changes
+    fail_flag = False
+
     # Connect to Database for Single Source of Truth
     DB = Database(ip='localhost', username=sys.argv[1], password=sys.argv[2])
 
@@ -38,28 +41,36 @@ def main():
     match action:
         case 'ospf_enable':
             # Deploy OSPF on existing topology
-            R1.edit_config_ospf(process_id='10',
+            if not R1.edit_config_ospf(process_id='10',
                                 router_id='1.1.1.1',
                                 network_ip='19.1.0.0', network_mask='0.0.0.255',
                                 area_id='0',
-                                action='enable')
+                                action='enable'):
+                fail_flag = True
 
         case 'ospf_disable':
             # Remove OSPF from existing topology
-            R1.edit_config_ospf(process_id='10',
+            if not R1.edit_config_ospf(process_id='10',
                                 router_id='1.1.1.1',
                                 network_ip='19.1.0.0', network_mask='0.0.0.255',
                                 area_id='0',
-                                action='disable')
+                                action='disable'):
+                fail_flag = True
 
         case 'xxx_enable':
             # can be expanded easily adding more cases..
             pass
 
-    # Verify the Baseline health of topology
+    # Verify if Brownfield deployment changes went through Success (or) Failure
+    if fail_flag:
+        print("ERROR : --- --- --- --- BrownField Deployment attempt failed --- --- --- ---")
+    else:
+        print("LOG : --- --- --- --- BrownField Deployment attempt success --- --- --- ---")
+
+    # Verify the Baseline health of topology after convergence
     time.sleep(7)
     if not verify_baseline_health(R1):
-        print("LOG : FAILED: Topology devices not per expected Baselines after Brownfield deployment changes..")
+        print("ERROR : FAILED: Topology devices not per expected Baselines after Brownfield deployment changes..")
     else:
         print("LOG : SUCCESS: Topology devices as per expected Baselines after Brownfield deployment changes..")
 

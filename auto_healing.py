@@ -89,7 +89,7 @@ def auto_healing(device, device_dc, nc_rpc_reply, thread_safe_dict, semaphore):
             # process current event and also as required check relevant Multiple Criteria to execute Auto-healing
             if event_type == 'BGP':
                 match event_info:
-                    case _ if re.match(r'neighbor [0-9.]+ Down', event_info):
+                    case _ if mg_1 := re.match(r'neighbor ([0-9.]+) Down', event_info):
                         message = (
                             f"{threading.current_thread().name} / #{threading.active_count()} : "
                             f"    LOG : <processing> netconf_notification : BGP neighbor down"
@@ -104,7 +104,6 @@ def auto_healing(device, device_dc, nc_rpc_reply, thread_safe_dict, semaphore):
                             )
                             print(message)
 
-                            mg_1 = re.match(r'neighbor ([0-9.]+) Down', event_info)
                             mg_2 = re.match(r'Duplicate address ([0-9.]+) on (.*), sourced by ',
                                             thread_safe_dict.get_item('DUPADDR'))
 
@@ -112,12 +111,14 @@ def auto_healing(device, device_dc, nc_rpc_reply, thread_safe_dict, semaphore):
                                 ip_format = eval(f'device_dc.{mg_2.groups()[1]}_ip')
                                 mask_format = eval(f'device_dc.{mg_2.groups()[1]}_mask')
 
-                                device.edit_config_interface(interface=mg_2.groups()[1],
+                                if device.edit_config_interface(interface=mg_2.groups()[1],
                                                          ip_address=ip_format,
-                                                         mask=mask_format)
+                                                         mask=mask_format):
+                                    loop_ctrl = 0
+                                else:
+                                    loop_ctrl = 20
 
                             # Verify Auto-healing actually fixed it..
-                            loop_ctrl = 0
                             while loop_ctrl < 20:
                                 if device.verify_bgp_mib():
                                     message = (
@@ -133,7 +134,7 @@ def auto_healing(device, device_dc, nc_rpc_reply, thread_safe_dict, semaphore):
                             if loop_ctrl == 20:
                                 message = (
                                     f"{threading.current_thread().name} / #{threading.active_count()} : "
-                                    f"    LOG : --- --- --- --- AUTO_HEALING attempt failed --- --- --- ---"
+                                    f"    ERROR : --- --- --- --- AUTO_HEALING attempt failed --- --- --- ---"
                                 )
                                 print(message)
 
