@@ -1,5 +1,6 @@
 import time
 import sys
+import os
 
 from utils_library import *
 
@@ -162,6 +163,11 @@ def main():
         This connects to all devices in Topology and also verifies the Baseline initial setup state before monitoring
             for issues to auto-heal part of continuous loop so that it keeps track & take care continuous auto-healing..
     """
+
+    # MySQL Database login credentials  taken through command line arguments for security reasons..
+    if len(sys.argv) != 3:
+        print(f"usage: {os.path.basename(__file__)} <database_username> <database_username>")
+        sys.exit(1)
 
     # Connect to Database for Single Source of Truth
     DB = Database(ip='localhost', username=sys.argv[1], password=sys.argv[2])

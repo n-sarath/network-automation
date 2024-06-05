@@ -1,5 +1,6 @@
 import sys
 import time
+import os
 
 from utils_library import *
 
@@ -17,6 +18,11 @@ def main():
 
     # flag to identify success/failure of Brownfield deployment changes
     fail_flag = False
+
+    # MySQL Database login credentials  taken through command line arguments for security reasons..
+    if len(sys.argv) != 3:
+        print(f"usage: {os.path.basename(__file__)} <database_username> <database_username>")
+        sys.exit(1)
 
     # Connect to Database for Single Source of Truth
     DB = Database(ip='localhost', username=sys.argv[1], password=sys.argv[2])
