@@ -16,7 +16,7 @@ def handle_yaml():
         device_info = yaml.safe_load(file)
 
     # Read Jinja template file
-    env = Environment(loader=FileSystemLoader('Greenfield/'),
+    env = Environment(loader=FileSystemLoader('GreenField/'),
                       trim_blocks=True,
                       lstrip_blocks=True)
     template = env.get_template('template.j2')
