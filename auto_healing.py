@@ -166,7 +166,7 @@ def main():
 
     # MySQL Database login credentials  taken through command line arguments for security reasons..
     if len(sys.argv) != 3:
-        print(f"usage: {os.path.basename(__file__)} <database_username> <database_username>")
+        print(f"usage: {os.path.basename(__file__)} <database_username> <database_password>")
         sys.exit(1)
 
     # Connect to Database for Single Source of Truth
